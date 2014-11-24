@@ -4,13 +4,15 @@
 %__cilkrts_worker = type { %__cilkrts_stack_frame**, %__cilkrts_stack_frame**, %__cilkrts_stack_frame**, %__cilkrts_stack_frame**, %__cilkrts_stack_frame**, i32, i8*, i8*, i8*, %__cilkrts_stack_frame*, %__cilkrts_stack_frame**, i8*, %__cilkrts_pedigree }
 %__cilkrts_pedigree = type { i64, %__cilkrts_pedigree* }
 
-declare void @__cilk_parent_prologue(%__cilkrts_stack_frame*)
+declare void @__cilk_parent_prologue(%__cilkrts_stack_frame*, i8*, i8*)
 declare void @__cilk_parent_epilogue(%__cilkrts_stack_frame*)
 declare void @__cilk_sync(%__cilkrts_stack_frame*)
 declare void @__cilk_excepting_sync(%__cilkrts_stack_frame*)
 declare void @__cilk_spawn_helper(%struct.capture*)
 declare void @_Z21__cilk_spawn_helpermangled(%struct.capture*)
 declare i32 @__gxx_personality_v0(...)
+declare i8* @llvm.returnaddress(i32)
+declare i8* @llvm.stacksave()
 
 %struct.capture = type { i32 }
 
@@ -19,7 +21,9 @@ declare i32 @__gxx_personality_v0(...)
 define void @test_basic(i1 %cond) {
   %agg.captured = alloca %struct.capture
   %sf = alloca %__cilkrts_stack_frame
-  call void @__cilk_parent_prologue(%__cilkrts_stack_frame* %sf)
+  %pc = call i8* @llvm.returnaddress(i32 0)
+  %sp = call i8* @llvm.stacksave()
+  call void @__cilk_parent_prologue(%__cilkrts_stack_frame* %sf, i8* %pc, i8* %sp)
   br i1 %cond, label %spawn, label %done
 
 spawn:
@@ -32,10 +36,14 @@ done:
   ret void
 
   ; CHECK: alloca %__cilkrts_stack_frame
+  ; CHECK-NEXT: call i8* @llvm.returnaddress(i32 0)
+  ; CHECK-NEXT: call i8* @llvm.stacksave()
   ; CHECK-NEXT: getelementptr inbounds %__cilkrts_stack_frame* {{.*}} 0
   ; CHECK-NEXT: store i32 16777216,
 
   ; CHECK: spawn:
+  ; CHECK-NEXT: call i8* @llvm.returnaddress.i32(i32 0)
+  ; CHECK-NEXT: call i8* @llvm.stacksave()
   ; CHECK-NEXT: call void @__cilk_conditional_parent_prologue
   ; CHECK-NEXT: call void @__cilk_spawn_helper
   ; CHECK: call void @__cilk_conditional_sync
@@ -47,7 +55,9 @@ done:
 define void @test_mangled(i1 %cond) {
   %agg.captured = alloca %struct.capture
   %sf = alloca %__cilkrts_stack_frame
-  call void @__cilk_parent_prologue(%__cilkrts_stack_frame* %sf)
+  %pc = call i8* @llvm.returnaddress(i32 0)
+  %sp = call i8* @llvm.stacksave()
+  call void @__cilk_parent_prologue(%__cilkrts_stack_frame* %sf, i8* %pc, i8* %sp)
   br i1 %cond, label %spawn, label %done
 
 spawn:
@@ -60,10 +70,14 @@ done:
   ret void
 
   ; CHECK: alloca %__cilkrts_stack_frame
+  ; CHECK-NEXT: call i8* @llvm.returnaddress(i32 0)
+  ; CHECK-NEXT: call i8* @llvm.stacksave()
   ; CHECK-NEXT: getelementptr inbounds %__cilkrts_stack_frame* {{.*}} 0
   ; CHECK-NEXT: store i32 16777216,
 
   ; CHECK: spawn:
+  ; CHECK-NEXT: call i8* @llvm.returnaddress.i32(i32 0)
+  ; CHECK-NEXT: call i8* @llvm.stacksave()
   ; CHECK-NEXT: call void @__cilk_conditional_parent_prologue
   ; CHECK-NEXT: call void @_Z21__cilk_spawn_helpermangled
 }
@@ -73,13 +87,17 @@ done:
 define void @test_unconditional1() {
   %agg.captured = alloca %struct.capture
   %sf = alloca %__cilkrts_stack_frame
-  call void @__cilk_parent_prologue(%__cilkrts_stack_frame* %sf)
+  %pc = call i8* @llvm.returnaddress(i32 0)
+  %sp = call i8* @llvm.stacksave()
+  call void @__cilk_parent_prologue(%__cilkrts_stack_frame* %sf, i8* %pc, i8* %sp)
   call void @__cilk_spawn_helper(%struct.capture* %agg.captured)
   call void @__cilk_sync(%__cilkrts_stack_frame* %sf)
   call void @__cilk_parent_epilogue(%__cilkrts_stack_frame* %sf)
   ret void
 
   ; CHECK: alloca %__cilkrts_stack_frame
+  ; CHECK-NEXT: call i8* @llvm.returnaddress(i32 0)
+  ; CHECK-NEXT: call i8* @llvm.stacksave()
   ; CHECK-NEXT: call void @__cilk_parent_prologue
   ; CHECK-NEXT: call void @__cilk_spawn_helper
   ; CHECK-NEXT: call void @__cilk_sync
@@ -89,7 +107,9 @@ define void @test_unconditional1() {
 define void @test_unconditional2(i1 %cond) {
   %agg.captured = alloca %struct.capture
   %sf = alloca %__cilkrts_stack_frame
-  call void @__cilk_parent_prologue(%__cilkrts_stack_frame* %sf)
+  %pc = call i8* @llvm.returnaddress(i32 0)
+  %sp = call i8* @llvm.stacksave()
+  call void @__cilk_parent_prologue(%__cilkrts_stack_frame* %sf, i8* %pc, i8* %sp)
   br i1 %cond, label %spawn, label %after
 
 spawn:
@@ -106,6 +126,8 @@ done:
   ret void
 
   ; CHECK: alloca %__cilkrts_stack_frame
+  ; CHECK-NEXT: call i8* @llvm.returnaddress(i32 0)
+  ; CHECK-NEXT: call i8* @llvm.stacksave()
   ; CHECK-NEXT: call void @__cilk_parent_prologue
 
   ; CHECK: spawn:
@@ -122,7 +144,9 @@ done:
 define void @test_multiple_branches(i1 %cond1, i1 %cond2) {
   %agg.captured = alloca %struct.capture
   %sf = alloca %__cilkrts_stack_frame
-  call void @__cilk_parent_prologue(%__cilkrts_stack_frame* %sf)
+  %pc = call i8* @llvm.returnaddress(i32 0)
+  %sp = call i8* @llvm.stacksave()
+  call void @__cilk_parent_prologue(%__cilkrts_stack_frame* %sf, i8* %pc, i8* %sp)
   br i1 %cond1, label %spawn1, label %after
 
 spawn1:
@@ -142,14 +166,20 @@ done:
   ret void
 
   ; CHECK: alloca %__cilkrts_stack_frame
+  ; CHECK-NEXT: call i8* @llvm.returnaddress(i32 0)
+  ; CHECK-NEXT: call i8* @llvm.stacksave()
   ; CHECK-NEXT: getelementptr inbounds %__cilkrts_stack_frame* {{.*}} 0
   ; CHECK-NEXT: store i32 16777216,
 
   ; CHECK: spawn1:
+  ; CHECK-NEXT: call i8* @llvm.returnaddress.i32(i32 0)
+  ; CHECK-NEXT: call i8* @llvm.stacksave()
   ; CHECK-NEXT: call void @__cilk_conditional_parent_prologue
   ; CHECK-NEXT: call void @__cilk_spawn_helper
 
   ; CHECK: spawn2:
+  ; CHECK-NEXT: call i8* @llvm.returnaddress.i32(i32 0)
+  ; CHECK-NEXT: call i8* @llvm.stacksave()
   ; CHECK-NEXT: call void @__cilk_conditional_parent_prologue
   ; CHECK-NEXT: call void @__cilk_spawn_helper
 
@@ -162,7 +192,9 @@ done:
 define void @test_dominated(i1 %cond1, i1 %cond2) {
   %agg.captured = alloca %struct.capture
   %sf = alloca %__cilkrts_stack_frame
-  call void @__cilk_parent_prologue(%__cilkrts_stack_frame* %sf)
+  %pc = call i8* @llvm.returnaddress(i32 0)
+  %sp = call i8* @llvm.stacksave()
+  call void @__cilk_parent_prologue(%__cilkrts_stack_frame* %sf, i8* %pc, i8* %sp)
   br i1 %cond1, label %spawn1, label %done
 
 spawn1:
@@ -181,10 +213,14 @@ done:
   ret void
 
   ; CHECK: alloca %__cilkrts_stack_frame
+  ; CHECK-NEXT: call i8* @llvm.returnaddress(i32 0)
+  ; CHECK-NEXT: call i8* @llvm.stacksave()
   ; CHECK-NEXT: getelementptr inbounds %__cilkrts_stack_frame* {{.*}} 0
   ; CHECK-NEXT: store i32 16777216,
 
   ; CHECK: spawn1:
+  ; CHECK-NEXT: call i8* @llvm.returnaddress.i32(i32 0)
+  ; CHECK-NEXT: call i8* @llvm.stacksave()
   ; CHECK-NEXT: call void @__cilk_conditional_parent_prologue
   ; CHECK-NEXT: call void @__cilk_spawn_helper
 
@@ -202,7 +238,9 @@ done:
 define void @test_multiple_inits(i1 %cond) {
   %agg.captured = alloca %struct.capture
   %sf = alloca %__cilkrts_stack_frame
-  call void @__cilk_parent_prologue(%__cilkrts_stack_frame* %sf)
+  %pc = call i8* @llvm.returnaddress(i32 0)
+  %sp = call i8* @llvm.stacksave()
+  call void @__cilk_parent_prologue(%__cilkrts_stack_frame* %sf, i8* %pc, i8* %sp)
   br i1 %cond, label %spawn, label %done
 
 spawn:
@@ -210,12 +248,14 @@ spawn:
   br label %done
 
 done:
-  call void @__cilk_parent_prologue(%__cilkrts_stack_frame* %sf)
+  call void @__cilk_parent_prologue(%__cilkrts_stack_frame* %sf, i8* %pc, i8* %sp)
   call void @__cilk_sync(%__cilkrts_stack_frame* %sf)
   call void @__cilk_parent_epilogue(%__cilkrts_stack_frame* %sf)
   ret void
 
   ; CHECK: alloca %__cilkrts_stack_frame
+  ; CHECK-NEXT: call i8* @llvm.returnaddress(i32 0)
+  ; CHECK-NEXT: call i8* @llvm.stacksave()
   ; CHECK-NEXT: call void @__cilk_parent_prologue
 
   ; CHECK: spawn:
@@ -228,7 +268,9 @@ done:
 define void @test_multiple_epilogues(i1 %cond) {
   %agg.captured = alloca %struct.capture
   %sf = alloca %__cilkrts_stack_frame
-  call void @__cilk_parent_prologue(%__cilkrts_stack_frame* %sf)
+  %pc = call i8* @llvm.returnaddress(i32 0)
+  %sp = call i8* @llvm.stacksave()
+  call void @__cilk_parent_prologue(%__cilkrts_stack_frame* %sf, i8* %pc, i8* %sp)
   br i1 %cond, label %spawn, label %done
 
 spawn:

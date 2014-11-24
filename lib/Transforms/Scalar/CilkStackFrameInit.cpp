@@ -27,6 +27,7 @@
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Module.h"
+#include "llvm/IR/Intrinsics.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Support/CommandLine.h"
 using namespace llvm;
@@ -246,7 +247,17 @@ bool CilkStackFrameLateInit::runOnFunction(Function &F) {
   for (InstListTy::iterator I = Spawns.begin(), E = Spawns.end(); I != E; ++I) {
     ++NumStackInitsInserted;
     IRBuilder<> B(*I);
-    B.CreateCall(CondPrologue, SF);
+    ArrayRef<Type *> arg_type(Type::getInt32Ty(getGlobalContext()));
+    Value *PC
+        = B.CreateCall(Intrinsic::getDeclaration(F.getParent(),
+                                                 Intrinsic::returnaddress,
+                                                 arg_type),
+                       B.getInt32(0));
+    Value *SP
+        = B.CreateCall(Intrinsic::getDeclaration(F.getParent(),
+                                                 Intrinsic::stacksave));
+
+    B.CreateCall3(CondPrologue, SF, PC, SP);
   }
 
   // Convert to conditional syncs.
