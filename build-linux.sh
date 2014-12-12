@@ -18,7 +18,7 @@ fi
 LLVM_HOME=`pwd`/"$LLVM_NAME"-src
 LLVM_BIN=`pwd`/"$LLVM_NAME"
 
-LLVM_GIT_REPO="https://github.com/cilkplus/llvm"
+LLVM_GIT_REPO="git@github.mit.edu:supertech/llvm-cilk-ok.git"
 LLVM_BRANCH="cilkplus"
 CLANG_GIT_REPO="git@github.mit.edu:supertech/clang-cilk-ok.git"
 CLANG_BRANCH=""
