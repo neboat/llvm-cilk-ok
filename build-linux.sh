@@ -15,7 +15,7 @@ else
   LLVM_NAME=$1
 fi
 
-LLVM_HOME=`pwd`/"$LLVM_NAME"-src
+LLVM_HOME=`pwd`/"$LLVM_NAME"/src
 LLVM_BIN=`pwd`/"$LLVM_NAME"
 
 LLVM_GIT_REPO="git@github.mit.edu:supertech/llvm-cilk-ok.git"
