@@ -10,7 +10,7 @@
 
 if [ "$1" = "" ]
 then
-  LLVM_NAME=llvm-cilkok
+  LLVM_NAME=llvm-cilk-ok
 else
   LLVM_NAME=$1
 fi
