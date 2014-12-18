@@ -84,6 +84,9 @@ ModulePass *createDataFlowSanitizerPass(StringRef ABIListFile = StringRef(),
                                         void *(*getArgTLS)() = 0,
                                         void *(*getRetValTLS)() = 0);
 
+// Insert CilkSanitizer (race detection) instrumentation
+FunctionPass *createCilkSanitizerPass(StringRef BlacklistFile = StringRef());
+
 #if defined(__GNUC__) && defined(__linux__)
 inline ModulePass *createDataFlowSanitizerPassForJIT(StringRef ABIListFile =
                                                          StringRef()) {
