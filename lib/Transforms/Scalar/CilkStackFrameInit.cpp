@@ -247,11 +247,14 @@ bool CilkStackFrameLateInit::runOnFunction(Function &F) {
   for (InstListTy::iterator I = Spawns.begin(), E = Spawns.end(); I != E; ++I) {
     ++NumStackInitsInserted;
     IRBuilder<> B(*I);
-    ArrayRef<Type *> arg_type(Type::getInt32Ty(getGlobalContext()));
+    // ArrayRef<Type *> arg_type(Type::getInt32Ty(getGlobalContext()));
+    // Value *PC
+    //     = B.CreateCall(Intrinsic::getDeclaration(F.getParent(),
+    //                                              Intrinsic::returnaddress,
+    //                                              arg_type),
     Value *PC
         = B.CreateCall(Intrinsic::getDeclaration(F.getParent(),
-                                                 Intrinsic::returnaddress,
-                                                 arg_type),
+                                                 Intrinsic::returnaddress),
                        B.getInt32(0));
     Value *SP
         = B.CreateCall(Intrinsic::getDeclaration(F.getParent(),
