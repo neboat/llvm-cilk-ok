@@ -37,10 +37,13 @@ STATISTIC(NumStackInitsDelayed, "Number of stack-frame initializations delayed")
 STATISTIC(NumStackInitsInserted, "Number of new late stack-frame initializations");
 STATISTIC(NumCallsConditionalized, "Number of sync and parent epilogue calls made conditional");
 
+// XXX: Disable this optimization for now, so that enter_frame is always
+// called and nove moved.
 static cl::opt<bool> DisableCilkStackFrameLateInit(
     "disable-cilk-sf-late-init", cl::Hidden,
     cl::desc("Disable the Cilk stack frame late initialization optimization"),
-    cl::init(false));
+    // cl::init(false));
+    cl::init(true));
 
 namespace {
 
