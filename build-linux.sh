@@ -16,7 +16,7 @@ else
 fi
 
 LLVM_HOME=`pwd`/"$LLVM_NAME"/src
-LLVM_BIN=`pwd`/"$LLVM_NAME"
+LLVM_TOP=`pwd`/"$LLVM_NAME"
 
 LLVM_GIT_REPO="git@github.mit.edu:supertech/llvm-cilk-ok.git"
 LLVM_BRANCH="cilkplus"
@@ -24,7 +24,8 @@ CLANG_GIT_REPO="git@github.mit.edu:supertech/clang-cilk-ok.git"
 CLANG_BRANCH=""
 COMPILERRT_GIT_REPO="https://github.com/cilkplus/compiler-rt"
 COMPILERRT_BRANCH="cilkplus"
-CILK_RT_GIT_REPO="https://bitbucket.org/intelcilkruntime/intel-cilk-runtime.git"
+# CILK_RT_GIT_REPO="https://bitbucket.org/intelcilkruntime/intel-cilk-runtime.git"
+CILK_RT_GIT_REPO="git@github.mit.edu:SuperTech/cilkplus-rts-src.git"
 
 echo Building $LLVM_HOME...
 
@@ -64,11 +65,13 @@ rm -rf $BUILD_HOME
 mkdir -p $BUILD_HOME
 cd $BUILD_HOME
 
+set -e
+
 ###### If you need to tune your environment - do it
 #export PATH=/usr/local/bin:/usr/bin:$PATH
 #export LD_LIBRARY_PATH=/usr/local/lib64:$LD_LIBRARY_PATH
-echo ../configure --prefix="$LLVM_BIN"
-../configure --prefix="$LLVM_BIN"
+echo ../configure --prefix="$LLVM_TOP"
+../configure --prefix="$LLVM_TOP"
 # ../configure --with-gcc-toolchain=/usr/local
 
 ###### By default you should simply lanch
@@ -82,36 +85,49 @@ if [ "0" != "$?" ]; then
 fi
 make install
 
-# ###### The following lines will prepare your system to build CilkPlus runtime
-# ###### If you don't want to do it - simply finish the script here
-# ###### (remove or comment all the rest lines of the script)
-# ###### We're suggesting to use your own Clang version to build the runtime
-# ###### that's why we're exporting the following 3 variables
-# export PATH=$BUILD_HOME/Debug+Asserts/bin:$PATH
-# export CC=clang
-# export CXX=clang++
+###### Produce a shell script, "usellvm.sh", to set up environment to
+###### use llvm-cilk-ok.
+echo export PATH=$LLVM_TOP/bin:'$PATH' > $LLVM_TOP/usellvm.sh
+echo export LIBRARY_PATH=$LLVM_TOP/lib:'$LIBRARY_PATH' >> $LLVM_TOP/usellvm.sh
+echo export LD_LIBRARY_PATH=$LLVM_TOP/lib:'$LD_LIBRARY_PATH' >> $LLVM_TOP/usellvm.sh
+echo export C_INCLUDE_PATH=$LLVM_TOP/include:'$CPATH' >> $LLVM_TOP/usellvm.sh
+echo export CPLUS_INCLUDE_PATH=$LLVM_TOP/include:'$CPATH' >> $LLVM_TOP/usellvm.sh
+
+###### The following lines will prepare your system to build CilkPlus runtime
+###### If you don't want to do it - simply finish the script here
+###### (remove or comment all the rest lines of the script)
+###### We're suggesting to use your own Clang version to build the runtime
+###### that's why we're exporting the following 3 variables
+echo source $LLVM_TOP/usellvm.sh
+source $LLVM_TOP/usellvm.sh
+export CC=clang
+export CXX=clang++
 
 # ###### That's the standard place in the llvm structure to deal with cilk runtime library
-# CILK_RT_HOME=$LLVM_HOME/projects/compiler-rt/lib/cilk
-
 # ###### We're getting the latest sources from Cilk runtime site
 # ###### that's why we suggest to remove all the stuff from our own code snapshot in the source tree
 # rm -rf $CILK_RT_HOME
 # git clone https://bitbucket.org/intelcilkruntime/intel-cilk-runtime.git $CILK_RT_HOME
 # cd $CILK_RT_HOME
 
-# ###### You could find the instruction on how to build cilk runtime in $CILK_RT_HOME/README
-# libtoolize
-# aclocal
-# automake --add-missing
-# autoconf
+###### Grab the Cilk runtime system, then build it
+CILK_RT_HOME=$LLVM_TOP/cilkrts
+rm -rf $CILK_RT_HOME
+git clone $CILK_RT_GIT_REPO $CILK_RT_HOME
+cd $CILK_RT_HOME
 
-# ###### By default we'll install libraries and include files in $BUILD_HOME
-# ###### If you don't like it - remove --prefix or use your prefered location
-# ./configure --prefix=$BUILD_HOME
+###### You could find the instruction on how to build cilk runtime in $CILK_RT_HOME/README
+libtoolize
+aclocal
+automake --add-missing
+autoconf
 
-# make
-# make install
+###### By default we'll install libraries and include files in $BUILD_HOME
+###### If you don't like it - remove --prefix or use your prefered location
+./configure --prefix=$LLVM_TOP
+
+make -j7
+make install
 
 ###### That's it!
 ###### But don't forget to extend LD_LIBRARY_PATH and INCLUDE search path with selected --prefix/lib|include
