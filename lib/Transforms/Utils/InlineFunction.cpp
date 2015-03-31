@@ -29,6 +29,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/Support/CallSite.h"
 #include "llvm/Transforms/Utils/Local.h"
+// #include "llvm/Support/raw_ostream.h"
 using namespace llvm;
 
 bool llvm::InlineFunction(CallInst *CI, InlineFunctionInfo &IFI,
@@ -618,6 +619,36 @@ bool llvm::InlineFunction(CallSite CS, InlineFunctionInfo &IFI,
     // Remember the first block that is newly cloned over.
     FirstNewBlock = LastBlock; ++FirstNewBlock;
 
+    if (Caller != CalledFunc) {
+      // Remove any cilk_tool_instr_c_* instrumentation calls.
+      Module *M = Caller->getParent();
+      Function* CFunctionEnter = M->getFunction("cilk_tool_c_function_enter");
+      Function* CFunctionLeave = M->getFunction("cilk_tool_c_function_leave");
+      if (CFunctionEnter) {
+        assert(CFunctionLeave &&
+               "cilk_tool_c_function_enter without cilk_tool_c_function_leave in same module");
+        SmallVector<Instruction*, 4> InstrumentationCalls;
+        assert(FirstNewBlock->getParent() == Caller);
+        for (Function::iterator BB = FirstNewBlock, E = Caller->end();
+             BB != E; ++BB) {
+          for (BasicBlock::iterator I = BB->begin(), E = BB->end(); I != E; ++I) {
+            if (CallInst *CI = dyn_cast<CallInst>(I)) {
+              Function* CalledFunc = CI->getCalledFunction();
+              if (CFunctionEnter == CalledFunc || CFunctionLeave == CalledFunc) {
+                // errs() << *BB << ":" << *I << "\n";
+                InstrumentationCalls.push_back(I);
+              }
+            }
+          }
+        }
+        for (SmallVector<Instruction*, 4>::iterator I = InstrumentationCalls.begin(),
+                 E = InstrumentationCalls.end();
+             I != E; ++I) {
+          (*I)->eraseFromParent();
+        }
+      }
+    }
+
     // Update the callgraph if requested.
     if (IFI.CG)
       UpdateCallGraphAfterInlining(CS, FirstNewBlock, VMap, IFI);
@@ -625,6 +656,7 @@ bool llvm::InlineFunction(CallSite CS, InlineFunctionInfo &IFI,
     // Update inlined instructions' line number information.
     fixupLineNumbers(Caller, FirstNewBlock, TheCall);
   }
+
 
   // If there are any alloca instructions in the block that used to be the entry
   // block for the callee, move them to the entry block of the caller.  First
