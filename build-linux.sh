@@ -15,13 +15,13 @@ fi
 LLVM_HOME=`pwd`/"$LLVM_NAME"/src
 LLVM_TOP=`pwd`/"$LLVM_NAME"
 
-LLVM_GIT_REPO="git@github.mit.edu:supertech/llvm-cilk-ok.git"
+LLVM_GIT_REPO="git@github.com:neboat/llvm-cilk-ok.git"
 LLVM_BRANCH=""
-CLANG_GIT_REPO="git@github.mit.edu:supertech/clang-cilk-ok.git"
+CLANG_GIT_REPO="git@github.com:neboat/clang-cilk-ok.git"
 CLANG_BRANCH=""
 COMPILERRT_GIT_REPO="https://github.com/cilkplus/compiler-rt"
 COMPILERRT_BRANCH=""
-CILK_RT_GIT_REPO="git@github.mit.edu:SuperTech/cilkplus-rts-src.git"
+CILK_RT_GIT_REPO="git@github.com:neboat/cilkplusrts-cilk-ok.git"
 CILK_RT_BRANCH=""
 
 echo Building $LLVM_HOME...
