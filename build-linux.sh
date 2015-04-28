@@ -15,13 +15,13 @@ fi
 LLVM_HOME=`pwd`/"$LLVM_NAME"/src
 LLVM_TOP=`pwd`/"$LLVM_NAME"
 
-LLVM_GIT_REPO="git@github.com:neboat/llvm-cilk-ok.git"
+LLVM_GIT_REPO="https://github.com/neboat/llvm-cilk-ok.git"
 LLVM_BRANCH=""
-CLANG_GIT_REPO="git@github.com:neboat/clang-cilk-ok.git"
+CLANG_GIT_REPO="https://github.com/neboat/clang-cilk-ok.git"
 CLANG_BRANCH=""
 COMPILERRT_GIT_REPO="https://github.com/cilkplus/compiler-rt"
 COMPILERRT_BRANCH=""
-CILK_RT_GIT_REPO="git@github.com:neboat/cilkplusrts-cilk-ok.git"
+CILK_RT_GIT_REPO="https://github.com/neboat/cilkplusrts-cilk-ok.git"
 CILK_RT_BRANCH=""
 
 echo Building $LLVM_HOME...
@@ -58,8 +58,11 @@ else
 fi
 
 BUILD_HOME=$LLVM_HOME/build
-rm -rf $BUILD_HOME
-mkdir -p $BUILD_HOME
+#rm -rf $BUILD_HOME
+#mkdir -p $BUILD_HOME
+if [ ! -d $BUILD_HOME ]; then
+    mkdir -p $BUILD_HOME
+fi
 cd $BUILD_HOME
 
 set -e
@@ -68,14 +71,18 @@ set -e
 #export PATH=/usr/local/bin:/usr/bin:$PATH
 #export LD_LIBRARY_PATH=/usr/local/lib64:$LD_LIBRARY_PATH
 echo ../configure --prefix="$LLVM_TOP"
-../configure --prefix="$LLVM_TOP"
+../configure --prefix="$LLVM_TOP" --enable-targets=host
 # ../configure --with-gcc-toolchain=/usr/local
 
 ###### By default you should simply lanch
 #../configure
 
 ###### Now you're able to build the compiler
-make -j8 > build.log
+physicalCpuCount=$([[ $(uname) = 'Darwin' ]] &&
+    sysctl -n hw.physicalcpu_max ||
+    lscpu -p | egrep -v '^#' | sort -u -t, -k 2,4 | wc -l)
+make -j$physicalCpuCount > build.log
+#make -j8 > build.log
 make install
 
 ###### Produce a shell script, "usellvm.sh", to set up environment to
